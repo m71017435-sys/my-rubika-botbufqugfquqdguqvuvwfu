@@ -1,0 +1,49 @@
+name: Unzip project
+
+on:
+workflow_dispatch:
+
+permissions:
+contents: write
+
+jobs:
+unzip:
+runs-on: ubuntu-latest
+steps:
+- name: Checkout repository
+uses: actions/checkout@v4
+
+  - name: Extract project ZIP
+    run: |
+      set -e
+
+      if [ ! -f HeliBoard-main.zip ]; then
+        echo "ERROR: HeliBoard-main.zip was not found in repository root."
+        exit 1
+      fi
+
+      mkdir -p extracted
+      unzip -q HeliBoard-main.zip -d extracted
+
+      if [ ! -d extracted/app ]; then
+        echo "ERROR: The ZIP does not contain the expected app directory."
+        find extracted -maxdepth 2 -type d | head -30
+        exit 1
+      fi
+
+      cp -a extracted/. .
+      rm -rf extracted
+      rm -f HeliBoard-main.zip
+
+      git config user.name "github-actions[bot]"
+      git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+      git add -A
+
+      if git diff --cached --quiet; then
+        echo "No changes to commit."
+        exit 0
+      fi
+
+      git commit -m "Upload HeliBoard project"
+      git push
